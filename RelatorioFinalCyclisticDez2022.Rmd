@@ -1,0 +1,142 @@
+---
+title: "Relatório Final Cyclistic, Chicago, IL"
+author: "Thiago da Costa"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+setwd("C:/Users/thiag/Desktop/EstudoDeCasoCyclistic")
+
+# caregando as bibliotecas
+
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(here)
+library(janitor)
+library(lubridate)
+
+# importando os datasets
+
+paraAnalises <- read_csv("CSVs/paraAnalises.csv")
+
+View(head(paraAnalises))
+
+paraAnalises$...1 <- NULL
+View(head(paraAnalises))
+
+# para uma análise 'tátil', é necessário converter os segundos um minutos:
+
+# tempo total dos passeios
+mean(paraAnalises$ride_length/60)
+
+# media do tempo dos passeios
+median(paraAnalises$ride_length/60)
+
+# maior tempo em passeios
+max(paraAnalises$ride_length/60)
+
+# menor tempo em passeios
+min(paraAnalises$ride_length/60) #shortest ride
+
+# existem dados de registros incorretos que mostram passeios maiores que 24h, corrigindo:
+paraAnalises <- paraAnalises[!(paraAnalises$ride_length>86400),]
+
+# uma nova rodada de analise:
+
+summary(paraAnalises$ride_length/60)
+mean(paraAnalises$ride_length/60)
+median(paraAnalises$ride_length/60)
+max(paraAnalises$ride_length/60)
+min(paraAnalises$ride_length/60)
+
+# observando o comportamento dos dois tipos de usuarios:
+aggregate(paraAnalises$ride_length/60 ~ paraAnalises$member_casual, FUN = mean)
+aggregate(paraAnalises$ride_length/60 ~ paraAnalises$member_casual, FUN = median)
+aggregate(paraAnalises$ride_length/60 ~ paraAnalises$member_casual, FUN = max)
+aggregate(paraAnalises$ride_length/60 ~ paraAnalises$member_casual, FUN = min)
+
+# tempo médio de viagem comparando os tipos de usuarios:
+
+paraAnalises$date <- as.Date(paraAnalises$started_at)
+paraAnalises$month <- format(as.Date(paraAnalises$date), "%m")
+paraAnalises$month_day <- format(as.Date(paraAnalises$date), "%d")
+paraAnalises$year <- format(as.Date(paraAnalises$date), "%Y")
+paraAnalises$day_of_week <- format(as.Date(paraAnalises$date), "%A")
+
+aggregate(paraAnalises$ride_length/60 ~ paraAnalises$member_casual + paraAnalises$day_of_week, FUN = mean)
+
+# ordenando a saída:
+
+paraAnalises$day_of_week <- ordered(paraAnalises$day_of_week, levels=c("segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"))
+aggregate(paraAnalises$ride_length/60 ~ paraAnalises$member_casual + paraAnalises$day_of_week, FUN = mean)
+
+View(head(paraAnalises))
+
+
+# tipos de viagem por modo de usuario e dias da semana
+
+paraAnalises %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length/60)) %>%
+  arrange(member_casual, weekday)
+
+# corridas por tipo de usuario
+paraAnalises %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+# duracao media
+paraAnalises %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+```
+
+### Análise para estratégia de Marketing Cyclistic, Dezembro 2022.
+
+Este relatório tem o propósito de forncecer uma visão geral sobre o comportamento dos clientes "casuais" em comparação com os "membros" da **Cyclistic**, nos últimos 12 meses, para quê de posse destas informações a diretoria possa tomar decisões estratégicas para ações baseada em dados.
+
+### Esta análise esta baseada em três perguntas principais:
+
+1.  Como os clientes membros utilizam as bicicletas em comparação com os clientes casuais?
+
+2.  Como despertar o interesse de fidelizar os clientes casuais como clientes da modalidade anual?
+
+3.  Como a Cyclistic pode usar as mídias digitais para influenciar os passageiros casuais a se tornarem membros?
+
+### Fontes de dados:
+
+Para realização desta análise foram utilizados dados compreendidos entre Dezembro de 2021 até Novembro de 2022. Os dados estão separados por mês no repositório: [Dados Cyclistics](https://divvy-tripdata.s3.amazonaws.com/index.html).
+
+### Características dos dados:
+
+Após normalizados, os dados foram mesclados em uma única variável, ja no processo de análise e passaram a apresentar a seguinte estrutura:
+
+```{r doze_meses}
+summary(paraAnalises)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
